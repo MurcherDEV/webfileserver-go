@@ -18,17 +18,36 @@ import (
 //go:embed frontend/*
 var frontendFS embed.FS
 
-const (
-	dataDir     = "/data"
-	defaultUser = "admin"
-	// bcrypt hash for "admin"
-	defaultHash = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
+const dataDir = "/data"
+
+var (
+	authUser string
+	authHash []byte
 )
 
 func init() {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		log.Fatalf("Failed to create data directory: %v", err)
 	}
+
+	// Read credentials from environment variables (defaults: admin / admin)
+	authUser = os.Getenv("AUTH_USER")
+	if authUser == "" {
+		authUser = "admin"
+	}
+
+	authPass := os.Getenv("AUTH_PASS")
+	if authPass == "" {
+		authPass = "admin"
+	}
+
+	// Generate bcrypt hash at startup so we don't need a pre-computed hash
+	hash, err := bcrypt.GenerateFromPassword([]byte(authPass), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatalf("Failed to hash password: %v", err)
+	}
+	authHash = hash
+	log.Printf("Auth configured for user: %s", authUser)
 }
 
 type FileInfo struct {
@@ -76,13 +95,23 @@ func main() {
 func basicAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
-		if !ok || user != defaultUser || bcrypt.CompareHashAndPassword([]byte(defaultHash), []byte(pass)) != nil {
+		if !ok || user != authUser || bcrypt.CompareHashAndPassword(authHash, []byte(pass)) != nil {
 			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
 		next.ServeHTTP(w, r)
 	})
+}
+
+func safePath(reqPath string) (string, bool) {
+	cleaned := filepath.Clean(reqPath)
+	fullPath := filepath.Join(dataDir, cleaned)
+	// Ensure the path is strictly within dataDir
+	if fullPath != dataDir && !strings.HasPrefix(fullPath, dataDir+string(os.PathSeparator)) {
+		return "", false
+	}
+	return fullPath, true
 }
 
 func handleListFiles(w http.ResponseWriter, r *http.Request) {
@@ -96,8 +125,8 @@ func handleListFiles(w http.ResponseWriter, r *http.Request) {
 		reqPath = "/"
 	}
 
-	fullPath := filepath.Join(dataDir, filepath.Clean(reqPath))
-	if !strings.HasPrefix(fullPath, dataDir) {
+	fullPath, ok := safePath(reqPath)
+	if !ok {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
@@ -150,8 +179,8 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	fullPath := filepath.Join(dataDir, filepath.Clean(reqPath), header.Filename)
-	if !strings.HasPrefix(fullPath, dataDir) {
+	fullPath := filepath.Join(dataDir, filepath.Clean(reqPath), filepath.Base(header.Filename))
+	if !strings.HasPrefix(fullPath, dataDir+string(os.PathSeparator)) {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
@@ -169,6 +198,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok"}`))
 }
@@ -185,8 +215,8 @@ func handleDownload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullPath := filepath.Join(dataDir, filepath.Clean(reqPath))
-	if !strings.HasPrefix(fullPath, dataDir) {
+	fullPath, ok := safePath(reqPath)
+	if !ok {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
@@ -206,8 +236,8 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fullPath := filepath.Join(dataDir, filepath.Clean(reqPath))
-	if !strings.HasPrefix(fullPath, dataDir) {
+	fullPath, ok := safePath(reqPath)
+	if !ok {
 		http.Error(w, "Invalid path", http.StatusBadRequest)
 		return
 	}
@@ -218,6 +248,7 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok"}`))
 }
