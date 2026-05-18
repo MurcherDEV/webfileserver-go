@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personal File Server</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+</head>
+<body class="dark-mode">
+    <div id="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div id="login-container" class="container">
+        <div class="glass-panel login-panel">
+            <div class="login-header">
+                <i class='bx bx-cloud-lightning'></i>
+                <h2>NexusDrive</h2>
+            </div>
+            <p>Secure personal file storage</p>
+            <form id="login-form">
+                <div class="input-group">
+                    <i class='bx bx-user'></i>
+                    <input type="text" id="username" placeholder="Username" required autocomplete="username">
+                </div>
+                <div class="input-group">
+                    <i class='bx bx-lock-alt'></i>
+                    <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+                </div>
+                <button type="submit" class="btn primary-btn">
+                    <span>Sign In</span>
+                    <i class='bx bx-right-arrow-alt'></i>
+                </button>
+                <div id="login-error" class="error-msg hidden">Invalid credentials.</div>
+            </form>
+        </div>
+    </div>
+
+    <div id="app-container" class="container hidden">
+        <header class="glass-panel header">
+            <div class="logo">
+                <i class='bx bx-cloud-lightning'></i>
+                <h1>NexusDrive</h1>
+            </div>
+            <div class="user-actions">
+                <button id="theme-toggle" class="icon-btn" title="Toggle Theme">
+                    <i class='bx bx-sun'></i>
+                </button>
+                <button id="logout-btn" class="btn outline-btn">
+                    <i class='bx bx-log-out'></i> Logout
+                </button>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <div class="glass-panel toolbar">
+                <div class="breadcrumbs" id="breadcrumbs">
+                    <!-- Dynamic breadcrumbs -->
+                </div>
+                <div class="actions">
+                    <label for="file-upload" class="btn primary-btn upload-btn">
+                        <i class='bx bx-cloud-upload'></i> Upload Files
+                    </label>
+                    <input type="file" id="file-upload" class="hidden" multiple>
+                </div>
+            </div>
+
+            <div class="glass-panel file-browser">
+                <div class="table-header">
+                    <div class="col-icon"></div>
+                    <div class="col-name">Name</div>
+                    <div class="col-size">Size</div>
+                    <div class="col-actions"></div>
+                </div>
+                <div id="file-list" class="file-list">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading files...</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <div id="toast-container" class="toast-container"></div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
