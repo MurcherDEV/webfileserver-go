@@ -1,14 +1,11 @@
 #!/bin/bash
 
-# Check for docker compose (modern) or docker-compose (legacy)
-if [ -x "$(command -v docker-compose)" ]; then
-  COMPOSE="docker-compose"
-elif docker compose version > /dev/null 2>&1; then
-  COMPOSE="docker compose"
-else
-  echo 'Error: neither docker-compose nor docker compose is available.' >&2
+if ! docker compose version > /dev/null 2>&1; then
+  echo 'Error: docker compose (v2) is not installed.' >&2
   exit 1
 fi
+
+COMPOSE="docker compose"
 
 domains=(murcher.ru)
 rsa_key_size=4096
