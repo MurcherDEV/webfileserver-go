@@ -12,6 +12,10 @@ const fileUpload = document.getElementById('file-upload');
 const themeToggle = document.getElementById('theme-toggle');
 const logoutBtn = document.getElementById('logout-btn');
 const toastContainer = document.getElementById('toast-container');
+const uploadProgressContainer = document.getElementById('upload-progress-container');
+const uploadFilename = document.getElementById('upload-filename');
+const uploadPercentage = document.getElementById('upload-percentage');
+const progressBarFill = document.getElementById('progress-bar-fill');
 
 // Authentication
 function getAuthHeaders() {
@@ -222,29 +226,57 @@ fileUpload.addEventListener('change', async (e) => {
     if (files.length === 0) return;
 
     for (let file of files) {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        try {
-            const res = await fetch(`${API_BASE}/upload?path=${encodeURIComponent(currentPath)}`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: formData
-            });
-
-            if (res.ok) {
-                showToast(`${file.name} uploaded`, 'success');
-            } else {
-                showToast(`Failed to upload ${file.name}`, 'error');
-            }
-        } catch (err) {
-            showToast(`Error uploading ${file.name}`, 'error');
-        }
+        await uploadFileWithProgress(file);
     }
     
     fileUpload.value = ''; // Reset
     loadFiles(currentPath);
 });
+
+function uploadFileWithProgress(file) {
+    return new Promise((resolve) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        uploadProgressContainer.classList.remove('hidden');
+        uploadFilename.textContent = `Uploading: ${file.name}`;
+        uploadPercentage.textContent = '0%';
+        progressBarFill.style.width = '0%';
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${API_BASE}/upload?path=${encodeURIComponent(currentPath)}`, true);
+        
+        // Add Authorization header
+        const auth = sessionStorage.getItem('auth');
+        xhr.setRequestHeader('Authorization', `Basic ${auth}`);
+
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percentComplete = Math.round((e.loaded / e.total) * 100);
+                uploadPercentage.textContent = `${percentComplete}%`;
+                progressBarFill.style.width = `${percentComplete}%`;
+            }
+        };
+
+        xhr.onload = () => {
+            if (xhr.status === 200) {
+                showToast(`${file.name} uploaded`, 'success');
+            } else {
+                showToast(`Failed to upload ${file.name}`, 'error');
+            }
+            uploadProgressContainer.classList.add('hidden');
+            resolve(); // Resolve anyway to continue with the next file
+        };
+
+        xhr.onerror = () => {
+            showToast(`Error uploading ${file.name}`, 'error');
+            uploadProgressContainer.classList.add('hidden');
+            resolve();
+        };
+
+        xhr.send(formData);
+    });
+}
 
 // Theme
 themeToggle.addEventListener('click', () => {
