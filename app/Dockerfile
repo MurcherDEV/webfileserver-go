@@ -2,17 +2,17 @@ FROM golang:1.22-alpine AS builder
 
 WORKDIR /app
 
-# Install git for downloading dependencies
-RUN apk add --no-cache git
+# Git is not strictly required for these dependencies, removing to avoid apk network errors
 
 COPY go.mod ./
 # Copy go.sum if it exists (for reproducibility), otherwise it will be generated
 COPY go.sum* ./
-RUN go mod download
+RUN go mod download || true
 
 COPY . .
 
-# Build the statically linked executable
+# Generate go.sum and build the statically linked executable
+RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o file-server .
 
 # Use a minimal alpine image for the final stage
