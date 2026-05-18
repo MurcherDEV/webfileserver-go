@@ -104,6 +104,14 @@ function formatSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
 }
 
+function formatSpeed(bytesPerSec) {
+    if (bytesPerSec === 0 || !isFinite(bytesPerSec)) return '0 B/s';
+    const k = 1024;
+    const sizes = ['B/s', 'KB/s', 'MB/s', 'GB/s'];
+    const i = Math.floor(Math.log(bytesPerSec) / Math.log(k));
+    return parseFloat((bytesPerSec / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
 function renderFiles(files) {
     if (!files || files.length === 0) {
         fileList.innerHTML = `
@@ -250,8 +258,24 @@ function uploadFileWithProgress(file) {
         const auth = sessionStorage.getItem('auth');
         xhr.setRequestHeader('Authorization', `Basic ${auth}`);
 
+        let uploadStartTime = Date.now();
+        let lastTime = uploadStartTime;
+        let lastLoaded = 0;
+
         xhr.upload.onprogress = (e) => {
             if (e.lengthComputable) {
+                const currentTime = Date.now();
+                const timeDiff = (currentTime - lastTime) / 1000; // in seconds
+                
+                if (timeDiff > 0.5) { // update speed every 500ms
+                    const bytesDiff = e.loaded - lastLoaded;
+                    const speedBps = bytesDiff / timeDiff;
+                    document.getElementById('upload-speed').textContent = formatSpeed(speedBps);
+                    
+                    lastTime = currentTime;
+                    lastLoaded = e.loaded;
+                }
+
                 const percentComplete = Math.round((e.loaded / e.total) * 100);
                 uploadPercentage.textContent = `${percentComplete}%`;
                 progressBarFill.style.width = `${percentComplete}%`;

@@ -9,11 +9,7 @@
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
 <body class="dark-mode">
-    <div id="background-blobs">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
-        <div class="blob blob-3"></div>
-    </div>
+
 
     <div id="login-container" class="container">
         <div class="glass-panel login-panel">
@@ -91,7 +87,10 @@
         <div id="upload-progress-container" class="glass-panel hidden upload-progress-container">
             <div class="progress-header">
                 <span id="upload-filename">Uploading file...</span>
-                <span id="upload-percentage">0%</span>
+                <div>
+                    <span id="upload-speed" style="margin-right: 10px; color: var(--text-secondary);">0 B/s</span>
+                    <span id="upload-percentage">0%</span>
+                </div>
             </div>
             <div class="progress-bar-bg">
                 <div id="progress-bar-fill" class="progress-bar-fill"></div>
