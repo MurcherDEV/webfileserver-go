@@ -11,6 +11,14 @@ RUN go mod download || true
 
 COPY . .
 
+# Download local assets (Boxicons) to eliminate external internet dependencies on the client
+RUN apk add --no-cache curl && \
+    mkdir -p frontend/assets/css frontend/assets/fonts && \
+    curl -sL "https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css" -o frontend/assets/css/boxicons.min.css && \
+    curl -sL "https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/fonts/boxicons.woff2" -o frontend/assets/fonts/boxicons.woff2 && \
+    curl -sL "https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/fonts/boxicons.woff" -o frontend/assets/fonts/boxicons.woff && \
+    curl -sL "https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/fonts/boxicons.ttf" -o frontend/assets/fonts/boxicons.ttf
+
 # Generate go.sum and build the statically linked executable
 RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o file-server .
