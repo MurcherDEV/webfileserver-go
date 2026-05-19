@@ -1,101 +1,106 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal File Server</title>
+    <title>Файловый сервер</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
 </head>
-<body class="dark-mode">
+<body>
 
-
-    <div id="login-container" class="container">
-        <div class="glass-panel login-panel">
+    <div id="login-container" class="login-wrapper">
+        <div class="login-panel">
             <div class="login-header">
-                <i class='bx bx-cloud-lightning'></i>
-                <h2>NexusDrive</h2>
+                <i class='bx bxs-cloud' style="color: #1a73e8; font-size: 3rem;"></i>
+                <h2>Файловый сервер</h2>
             </div>
-            <p>Secure personal file storage</p>
+            <p>Вход в хранилище</p>
             <form id="login-form">
                 <div class="input-group">
-                    <i class='bx bx-user'></i>
-                    <input type="text" id="username" placeholder="Username" required autocomplete="username">
+                    <input type="text" id="username" placeholder="Имя пользователя" required autocomplete="username">
                 </div>
                 <div class="input-group">
-                    <i class='bx bx-lock-alt'></i>
-                    <input type="password" id="password" placeholder="Password" required autocomplete="current-password">
+                    <input type="password" id="password" placeholder="Пароль" required autocomplete="current-password">
                 </div>
-                <button type="submit" class="btn primary-btn">
-                    <span>Sign In</span>
-                    <i class='bx bx-right-arrow-alt'></i>
-                </button>
-                <div id="login-error" class="error-msg hidden">Invalid credentials.</div>
+                <button type="submit" class="btn primary-btn">Войти</button>
+                <div id="login-error" class="error-msg hidden">Неверные учетные данные.</div>
             </form>
+            <div class="footer-copyright">2026 Симферополь Мясников Артём</div>
         </div>
     </div>
 
-    <div id="app-container" class="container hidden">
-        <header class="glass-panel header">
+    <div id="app-container" class="app-layout hidden">
+        <header class="header">
             <div class="logo">
-                <i class='bx bx-cloud-lightning'></i>
-                <h1>NexusDrive</h1>
+                <i class='bx bxs-cloud'></i>
+                <h1>Файловый сервер</h1>
+            </div>
+            <div class="search-bar">
+                <i class='bx bx-search'></i>
+                <input type="text" placeholder="Поиск на диске (в разработке)">
             </div>
             <div class="user-actions">
-                <button id="theme-toggle" class="icon-btn" title="Toggle Theme">
-                    <i class='bx bx-sun'></i>
-                </button>
-                <button id="logout-btn" class="btn outline-btn">
-                    <i class='bx bx-log-out'></i> Logout
+                <button id="logout-btn" class="icon-btn" title="Выйти">
+                    <i class='bx bx-log-out'></i>
                 </button>
             </div>
         </header>
 
-        <main class="main-content">
-            <div class="glass-panel toolbar">
-                <div class="breadcrumbs" id="breadcrumbs">
-                    <!-- Dynamic breadcrumbs -->
-                </div>
-                <div class="actions">
-                    <label for="file-upload" class="btn primary-btn upload-btn">
-                        <i class='bx bx-cloud-upload'></i> Upload Files
-                    </label>
-                    <input type="file" id="file-upload" class="hidden" multiple>
-                </div>
-            </div>
+        <div class="main-body">
+            <aside class="sidebar">
+                <label for="file-upload" class="btn upload-new-btn">
+                    <i class='bx bx-plus'></i> <span>Создать</span>
+                </label>
+                <input type="file" id="file-upload" class="hidden" multiple>
+                
+                <nav class="side-nav">
+                    <a href="#" class="active"><i class='bx bxs-hdd'></i> Мой диск</a>
+                    <a href="#"><i class='bx bx-star'></i> Помеченные</a>
+                    <a href="#"><i class='bx bx-trash'></i> Корзина</a>
+                </nav>
+            </aside>
 
-            <div class="glass-panel file-browser">
-                <div class="table-header">
-                    <div class="col-icon"></div>
-                    <div class="col-name">Name</div>
-                    <div class="col-size">Size</div>
-                    <div class="col-actions"></div>
-                </div>
-                <div id="file-list" class="file-list">
-                    <div class="loading-state">
-                        <div class="spinner"></div>
-                        <p>Loading files...</p>
+            <main class="content-area">
+                <div class="breadcrumbs-container">
+                    <div class="breadcrumbs" id="breadcrumbs">
+                        <!-- Dynamic breadcrumbs -->
                     </div>
                 </div>
-            </div>
-        </main>
+
+                <div class="file-browser">
+                    <div class="table-header">
+                        <div class="col-name">Название</div>
+                        <div class="col-size">Размер</div>
+                        <div class="col-actions">Действия</div>
+                    </div>
+                    <div id="file-list" class="file-list">
+                        <div class="loading-state">
+                            <div class="spinner"></div>
+                            <p>Загрузка файлов...</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
         
         <div id="toast-container" class="toast-container"></div>
+        <div class="footer-copyright app-footer">2026 Симферополь Мясников Артём</div>
     </div>
 
-        <div id="upload-progress-container" class="glass-panel hidden upload-progress-container">
-            <div class="progress-header">
-                <span id="upload-filename">Uploading file...</span>
-                <div>
-                    <span id="upload-speed" style="margin-right: 10px; color: var(--text-secondary);">0 B/s</span>
-                    <span id="upload-percentage">0%</span>
-                </div>
-            </div>
-            <div class="progress-bar-bg">
-                <div id="progress-bar-fill" class="progress-bar-fill"></div>
+    <div id="upload-progress-container" class="upload-progress-container hidden">
+        <div class="progress-header">
+            <span id="upload-filename">Загрузка файла...</span>
+            <div>
+                <span id="upload-speed" style="margin-right: 10px; color: var(--text-secondary);">0 B/s</span>
+                <span id="upload-percentage">0%</span>
             </div>
         </div>
+        <div class="progress-bar-bg">
+            <div id="progress-bar-fill" class="progress-bar-fill"></div>
+        </div>
+    </div>
 
     <script src="app.js"></script>
 </body>

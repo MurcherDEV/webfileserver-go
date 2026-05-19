@@ -9,7 +9,6 @@ const loginError = document.getElementById('login-error');
 const fileList = document.getElementById('file-list');
 const breadcrumbs = document.getElementById('breadcrumbs');
 const fileUpload = document.getElementById('file-upload');
-const themeToggle = document.getElementById('theme-toggle');
 const logoutBtn = document.getElementById('logout-btn');
 const toastContainer = document.getElementById('toast-container');
 const uploadProgressContainer = document.getElementById('upload-progress-container');
@@ -302,16 +301,7 @@ function uploadFileWithProgress(file) {
     });
 }
 
-// Theme
-themeToggle.addEventListener('click', () => {
-    document.body.classList.toggle('dark-mode');
-    const icon = themeToggle.querySelector('i');
-    if (document.body.classList.contains('dark-mode')) {
-        icon.classList.replace('bx-moon', 'bx-sun');
-    } else {
-        icon.classList.replace('bx-sun', 'bx-moon');
-    }
-});
+
 
 // UI Helpers
 function showToast(message, type = 'success') {

@@ -76,27 +76,34 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Serve frontend files without basic auth to prevent native browser popup
 	mux.Handle("/", http.FileServer(http.FS(subFS)))
-	mux.Handle("/webdav/", webdavHandler)
 
-	mux.HandleFunc("/api/files", handleListFiles)
-	mux.HandleFunc("/api/upload", handleUpload)
-	mux.HandleFunc("/api/download", handleDownload)
-	mux.HandleFunc("/api/delete", handleDelete)
+	// Protect WebDAV with basic auth (send challenge to prompt OS client)
+	mux.Handle("/webdav/", basicAuth(webdavHandler, true))
 
-	authHandler := basicAuth(mux)
+	// Protect API endpoints with basic auth (no challenge to prevent browser popup)
+	apiMux := http.NewServeMux()
+	apiMux.HandleFunc("/api/files", handleListFiles)
+	apiMux.HandleFunc("/api/upload", handleUpload)
+	apiMux.HandleFunc("/api/download", handleDownload)
+	apiMux.HandleFunc("/api/delete", handleDelete)
+	
+	mux.Handle("/api/", basicAuth(apiMux, false))
 
 	log.Println("Starting server on :8080")
-	if err := http.ListenAndServe(":8080", authHandler); err != nil {
+	if err := http.ListenAndServe(":8080", mux); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func basicAuth(next http.Handler) http.Handler {
+func basicAuth(next http.Handler, sendChallenge bool) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		user, pass, ok := r.BasicAuth()
 		if !ok || user != authUser || bcrypt.CompareHashAndPassword(authHash, []byte(pass)) != nil {
-			w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			if sendChallenge {
+				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
+			}
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
