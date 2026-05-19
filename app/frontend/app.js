@@ -29,10 +29,11 @@ function getAuthHeaders() {
 }
 
 function checkAuth() {
-    if (sessionStorage.getItem('auth')) {
+    const auth = sessionStorage.getItem('auth');
+    if (auth) {
         loginContainer.classList.add('hidden');
         appContainer.classList.remove('hidden');
-        loadFiles(currentPath);
+        switchTab('drive');
     } else {
         loginContainer.classList.remove('hidden');
         appContainer.classList.add('hidden');
@@ -68,20 +69,68 @@ logoutBtn.addEventListener('click', () => {
     checkAuth();
 });
 
-// File Management
-async function loadFiles(path) {
-    currentPath = path;
-    updateBreadcrumbs();
+// Tabs Navigation
+document.getElementById('tab-drive').addEventListener('click', (e) => {
+    e.preventDefault();
+    switchTab('drive');
+});
+document.getElementById('tab-starred').addEventListener('click', (e) => {
+    e.preventDefault();
+    switchTab('starred');
+});
+document.getElementById('tab-trash').addEventListener('click', (e) => {
+    e.preventDefault();
+    switchTab('trash');
+});
+
+function switchTab(tab) {
+    currentTab = tab;
+    document.querySelectorAll('.side-nav a').forEach(a => a.classList.remove('active'));
+    document.getElementById(`tab-${tab}`).classList.add('active');
     
-    fileList.innerHTML = `
-        <div class="loading-state">
-            <div class="spinner"></div>
-            <p>Loading files...</p>
-        </div>
-    `;
+    if (tab === 'trash') {
+        createBtn.style.opacity = '0.5';
+        createBtn.style.pointerEvents = 'none';
+        breadcrumbs.innerHTML = `<span class="crumb active">Корзина</span>`;
+    } else if (tab === 'starred') {
+        createBtn.style.opacity = '0.5';
+        createBtn.style.pointerEvents = 'none';
+        breadcrumbs.innerHTML = `<span class="crumb active">Помеченные</span>`;
+    } else {
+        createBtn.style.opacity = '1';
+        createBtn.style.pointerEvents = 'auto';
+        currentPath = '/';
+        updateBreadcrumbs();
+    }
+    
+    loadFiles(currentPath);
+}
+
+// File Management
+async function loadFiles(path, background = false) {
+    if (currentTab === 'drive') {
+        currentPath = path;
+        updateBreadcrumbs();
+    }
+    
+    if (!background) {
+        fileList.innerHTML = `
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Загрузка файлов...</p>
+            </div>
+        `;
+    }
 
     try {
-        const res = await fetch(`${API_BASE}/files?path=${encodeURIComponent(path)}`, {
+        let url = `${API_BASE}/files?path=${encodeURIComponent(path)}`;
+        if (currentTab === 'starred') {
+            url = `${API_BASE}/files?path=${encodeURIComponent(path)}&starred=true`;
+        } else if (currentTab === 'trash') {
+            url = `${API_BASE}/trash`;
+        }
+
+        const res = await fetch(url, {
             headers: getAuthHeaders()
         });
         
@@ -94,8 +143,10 @@ async function loadFiles(path) {
         const files = await res.json();
         renderFiles(files);
     } catch (err) {
-        showToast('Failed to load files', 'error');
-        fileList.innerHTML = '<div class="loading-state"><p>Error loading files.</p></div>';
+        if (!background) {
+            showToast('Не удалось загрузить файлы', 'error');
+            fileList.innerHTML = '<div class="loading-state"><p>Ошибка загрузки файлов.</p></div>';
+        }
     }
 }
 
@@ -140,8 +191,14 @@ function renderFiles(files) {
             </div>
             <div class="col-size">${file.is_dir ? '--' : formatSize(file.size)}</div>
             <div class="col-actions">
-                ${!file.is_dir ? `<button class="action-btn download" title="Download" onclick="downloadFile('${file.path}', event)"><i class='bx bx-download'></i></button>` : ''}
-                <button class="action-btn delete" title="Delete" onclick="deleteFile('${file.path}', event)"><i class='bx bx-trash'></i></button>
+                ${currentTab !== 'trash' ? `
+                    ${!file.is_dir ? `<button class="action-btn download" title="Скачать" onclick="downloadFile('${file.path}', event)"><i class='bx bx-download'></i></button>` : ''}
+                    <button class="action-btn star" title="Пометить" onclick="toggleStar('${file.path}', event)"><i class='bx ${file.is_starred ? 'bxs-star' : 'bx-star'}' ${file.is_starred ? 'style="color: #fbbc04;"' : ''}></i></button>
+                    <button class="action-btn delete" title="Удалить" onclick="deleteFile('${file.path}', event)"><i class='bx bx-trash'></i></button>
+                ` : `
+                    <button class="action-btn" title="Восстановить" onclick="restoreFile('${file.path}', event)"><i class='bx bx-revision'></i></button>
+                    <button class="action-btn delete" title="Удалить навсегда" onclick="deleteFile('${file.path}', event)"><i class='bx bx-trash'></i></button>
+                `}
             </div>
         </div>
     `).join('');
@@ -210,25 +267,55 @@ async function downloadFile(path, event) {
     }
 }
 
-async function deleteFile(path, event) {
-    if (event) event.stopPropagation();
-    
-    if (!confirm(`Are you sure you want to delete ${path.split('/').pop()}?`)) return;
-    
+async function toggleStar(path, e) {
+    e.stopPropagation();
+    try {
+        const res = await fetch(`${API_BASE}/star?path=${encodeURIComponent(path)}`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            loadFiles(currentPath, true); // background reload
+        }
+    } catch (err) {}
+}
+
+async function restoreFile(path, e) {
+    e.stopPropagation();
+    try {
+        const res = await fetch(`${API_BASE}/restore?path=${encodeURIComponent(path)}`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            showToast('Файл восстановлен', 'success');
+            loadFiles(currentPath, true);
+        } else {
+            showToast('Ошибка при восстановлении', 'error');
+        }
+    } catch (err) {
+        showToast('Ошибка соединения', 'error');
+    }
+}
+
+async function deleteFile(path, e) {
+    e.stopPropagation();
+    if (!confirm(currentTab === 'trash' ? 'Вы уверены, что хотите удалить файл навсегда?' : 'Переместить в корзину?')) return;
+
     try {
         const res = await fetch(`${API_BASE}/delete?path=${encodeURIComponent(path)}`, {
             method: 'DELETE',
             headers: getAuthHeaders()
         });
-        
+
         if (res.ok) {
-            showToast('Deleted successfully', 'success');
-            loadFiles(currentPath);
+            showToast(currentTab === 'trash' ? 'Удалено навсегда' : 'Перемещено в корзину', 'success');
+            loadFiles(currentPath, true); // soft reload
         } else {
-            showToast('Failed to delete', 'error');
+            showToast('Не удалось удалить файл', 'error');
         }
     } catch (err) {
-        showToast('Delete error', 'error');
+        showToast('Ошибка соединения', 'error');
     }
 }
 
@@ -241,7 +328,7 @@ fileUpload.addEventListener('change', async (e) => {
     }
     
     fileUpload.value = ''; // Reset
-    loadFiles(currentPath);
+    loadFiles(currentPath, true); // reload softly
 });
 
 function uploadFileWithProgress(file) {
@@ -330,7 +417,7 @@ createFolderBtn.addEventListener('click', async () => {
         
         if (res.ok) {
             showToast(`Папка ${folderName} создана`, 'success');
-            loadFiles(currentPath);
+            loadFiles(currentPath, true); // reload softly
         } else {
             showToast(`Не удалось создать папку`, 'error');
         }
@@ -346,7 +433,7 @@ searchInput.addEventListener('input', (e) => {
     const query = e.target.value.trim();
     
     if (query === '') {
-        loadFiles(currentPath);
+        loadFiles(currentPath, true);
         return;
     }
     

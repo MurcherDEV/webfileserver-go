@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/net/webdav"
@@ -19,15 +21,56 @@ import (
 var frontendFS embed.FS
 
 const dataDir = "/data"
+const trashDir = "/data/.trash"
+const starredFile = "/data/.starred.json"
+
+var starredMutex sync.RWMutex
 
 var (
 	authUser string
 	authHash []byte
 )
 
+type FileInfo struct {
+	Name      string `json:"name"`
+	IsDir     bool   `json:"is_dir"`
+	Size      int64  `json:"size"`
+	Path      string `json:"path"`
+	IsStarred bool   `json:"is_starred"`
+}
+
+func loadStarred() map[string]bool {
+	starredMutex.RLock()
+	defer starredMutex.RUnlock()
+	starred := make(map[string]bool)
+	data, err := os.ReadFile(starredFile)
+	if err == nil {
+		var list []string
+		json.Unmarshal(data, &list)
+		for _, item := range list {
+			starred[item] = true
+		}
+	}
+	return starred
+}
+
+func saveStarred(starred map[string]bool) {
+	starredMutex.Lock()
+	defer starredMutex.Unlock()
+	var list []string
+	for k := range starred {
+		list = append(list, k)
+	}
+	data, _ := json.Marshal(list)
+	os.WriteFile(starredFile, data, 0644)
+}
+
 func init() {
 	if err := os.MkdirAll(dataDir, 0755); err != nil {
 		log.Fatalf("Failed to create data directory: %v", err)
+	}
+	if err := os.MkdirAll(trashDir, 0755); err != nil {
+		log.Fatalf("Failed to create trash directory: %v", err)
 	}
 
 	// Read credentials from environment variables (defaults: admin / admin)
@@ -90,6 +133,9 @@ func main() {
 	apiMux.HandleFunc("/api/delete", handleDelete)
 	apiMux.HandleFunc("/api/mkdir", handleMkdir)
 	apiMux.HandleFunc("/api/search", handleSearch)
+	apiMux.HandleFunc("/api/star", handleStar)
+	apiMux.HandleFunc("/api/trash", handleTrash)
+	apiMux.HandleFunc("/api/restore", handleRestore)
 	
 	mux.Handle("/api/", basicAuth(apiMux, false))
 
@@ -146,17 +192,37 @@ func handleListFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	starred := loadStarred()
+	onlyStarred := r.URL.Query().Get("starred") == "true"
+
 	files := make([]FileInfo, 0)
 	for _, e := range entries {
+		// Skip internal folders
+		if e.Name() == ".trash" || e.Name() == ".starred.json" {
+			continue
+		}
+
 		info, err := e.Info()
 		if err != nil {
 			continue
 		}
+		
+		relPath := filepath.ToSlash(filepath.Join(reqPath, e.Name()))
+		if relPath == "" || relPath[0] != '/' {
+			relPath = "/" + relPath
+		}
+		isStar := starred[relPath]
+
+		if onlyStarred && !isStar {
+			continue
+		}
+
 		files = append(files, FileInfo{
-			Name:  e.Name(),
-			IsDir: e.IsDir(),
-			Size:  info.Size(),
-			Path:  filepath.ToSlash(filepath.Join(reqPath, e.Name())),
+			Name:      e.Name(),
+			IsDir:     e.IsDir(),
+			Size:      info.Size(),
+			Path:      relPath,
+			IsStarred: isStar,
 		})
 	}
 
@@ -251,10 +317,28 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := os.RemoveAll(fullPath)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	// If already in trash, permanently delete
+	if strings.HasPrefix(reqPath, "/.trash/") {
+		err := os.RemoveAll(fullPath)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// Soft delete to .trash with timestamp
+		fileName := filepath.Base(fullPath)
+		trashName := fmt.Sprintf("%d_%s", time.Now().Unix(), fileName)
+		trashPath := filepath.Join(trashDir, trashName)
+
+		err := os.Rename(fullPath, trashPath)
+		if err != nil {
+			// Fallback to remove if rename fails
+			err = os.RemoveAll(fullPath)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -344,4 +428,100 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(files)
+}
+
+func handleStar(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	reqPath := r.URL.Query().Get("path")
+	if reqPath == "" {
+		http.Error(w, "Path required", http.StatusBadRequest)
+		return
+	}
+	
+	// Normalize path
+	relPath := filepath.ToSlash(filepath.Clean(reqPath))
+	if relPath == "" || relPath[0] != '/' {
+		relPath = "/" + relPath
+	}
+
+	starred := loadStarred()
+	if starred[relPath] {
+		delete(starred, relPath)
+	} else {
+		starred[relPath] = true
+	}
+	saveStarred(starred)
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
+}
+
+func handleTrash(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	entries, err := os.ReadDir(trashDir)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	files := make([]FileInfo, 0)
+	for _, e := range entries {
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		
+		files = append(files, FileInfo{
+			Name:  e.Name(),
+			IsDir: e.IsDir(),
+			Size:  info.Size(),
+			Path:  "/.trash/" + e.Name(),
+		})
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(files)
+}
+
+func handleRestore(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	reqPath := r.URL.Query().Get("path")
+	if reqPath == "" {
+		http.Error(w, "Path required", http.StatusBadRequest)
+		return
+	}
+
+	fileName := filepath.Base(reqPath)
+	trashPath := filepath.Join(trashDir, fileName)
+	
+	// Determine original name (strip timestamp)
+	parts := strings.SplitN(fileName, "_", 2)
+	originalName := fileName
+	if len(parts) == 2 {
+		originalName = parts[1]
+	}
+
+	// Restore to root
+	restorePath := filepath.Join(dataDir, originalName)
+
+	err := os.Rename(trashPath, restorePath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
 }
