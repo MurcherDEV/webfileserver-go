@@ -3,6 +3,7 @@ package main
 import (
 	"embed"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/fs"
 	"log"
@@ -93,12 +94,6 @@ func init() {
 	log.Printf("Auth configured for user: %s", authUser)
 }
 
-type FileInfo struct {
-	Name  string `json:"name"`
-	IsDir bool   `json:"is_dir"`
-	Size  int64  `json:"size"`
-	Path  string `json:"path"`
-}
 
 func main() {
 	webdavHandler := &webdav.Handler{
