@@ -88,6 +88,8 @@ func main() {
 	apiMux.HandleFunc("/api/upload", handleUpload)
 	apiMux.HandleFunc("/api/download", handleDownload)
 	apiMux.HandleFunc("/api/delete", handleDelete)
+	apiMux.HandleFunc("/api/mkdir", handleMkdir)
+	apiMux.HandleFunc("/api/search", handleSearch)
 	
 	mux.Handle("/api/", basicAuth(apiMux, false))
 
@@ -258,4 +260,88 @@ func handleDelete(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok"}`))
+}
+
+func handleMkdir(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	reqPath := r.URL.Query().Get("path")
+	if reqPath == "" {
+		http.Error(w, "Path required", http.StatusBadRequest)
+		return
+	}
+
+	fullPath, ok := safePath(reqPath)
+	if !ok {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	if err := os.MkdirAll(fullPath, 0755); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
+}
+
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	query := strings.ToLower(r.URL.Query().Get("q"))
+	if query == "" {
+		http.Error(w, "Query required", http.StatusBadRequest)
+		return
+	}
+
+	files := make([]FileInfo, 0)
+
+	err := filepath.WalkDir(dataDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		
+		// Skip root dir itself
+		if path == dataDir {
+			return nil
+		}
+
+		if strings.Contains(strings.ToLower(d.Name()), query) {
+			info, err := d.Info()
+			if err != nil {
+				return nil // skip file on error
+			}
+			
+			// Calculate relative path from dataDir
+			relPath, err := filepath.Rel(dataDir, path)
+			if err != nil {
+				return nil
+			}
+			relPath = "/" + filepath.ToSlash(relPath)
+
+			files = append(files, FileInfo{
+				Name:  d.Name(),
+				IsDir: d.IsDir(),
+				Size:  info.Size(),
+				Path:  relPath,
+			})
+		}
+		return nil
+	})
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(files)
 }

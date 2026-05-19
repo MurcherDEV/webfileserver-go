@@ -245,7 +245,44 @@ button {
 
 .upload-new-btn i {
     font-size: 28px;
-    color: var(--text-secondary); /* Google uses colorful plus, keeping simple */
+    color: var(--text-secondary);
+}
+
+.create-dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.create-dropdown-menu {
+    position: absolute;
+    top: 56px;
+    left: 0;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    width: 200px;
+    z-index: 1000;
+    padding: 8px 0;
+}
+
+.dropdown-item {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+.dropdown-item i {
+    font-size: 20px;
+    color: var(--text-secondary);
+}
+
+.dropdown-item:hover {
+    background: var(--hover-bg);
 }
 
 .side-nav {

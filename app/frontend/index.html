@@ -39,7 +39,7 @@
             </div>
             <div class="search-bar">
                 <i class='bx bx-search'></i>
-                <input type="text" placeholder="Поиск на диске (в разработке)">
+                <input type="text" id="search-input" placeholder="Поиск на диске">
             </div>
             <div class="user-actions">
                 <button id="logout-btn" class="icon-btn" title="Выйти">
@@ -50,10 +50,20 @@
 
         <div class="main-body">
             <aside class="sidebar">
-                <label for="file-upload" class="btn upload-new-btn">
-                    <i class='bx bx-plus'></i> <span>Создать</span>
-                </label>
-                <input type="file" id="file-upload" class="hidden" multiple>
+                <div class="create-dropdown-container">
+                    <button class="btn upload-new-btn" id="create-btn">
+                        <i class='bx bx-plus'></i> <span>Создать</span>
+                    </button>
+                    <div class="create-dropdown-menu hidden" id="create-dropdown">
+                        <div class="dropdown-item" id="create-folder-btn">
+                            <i class='bx bx-folder-plus'></i> Новая папка
+                        </div>
+                        <label for="file-upload" class="dropdown-item">
+                            <i class='bx bx-upload'></i> Загрузить файлы
+                        </label>
+                        <input type="file" id="file-upload" class="hidden" multiple>
+                    </div>
+                </div>
                 
                 <nav class="side-nav">
                     <a href="#" class="active"><i class='bx bxs-hdd'></i> Мой диск</a>

@@ -15,6 +15,10 @@ const uploadProgressContainer = document.getElementById('upload-progress-contain
 const uploadFilename = document.getElementById('upload-filename');
 const uploadPercentage = document.getElementById('upload-percentage');
 const progressBarFill = document.getElementById('progress-bar-fill');
+const searchInput = document.getElementById('search-input');
+const createBtn = document.getElementById('create-btn');
+const createDropdown = document.getElementById('create-dropdown');
+const createFolderBtn = document.getElementById('create-folder-btn');
 
 // Authentication
 function getAuthHeaders() {
@@ -130,10 +134,10 @@ function renderFiles(files) {
 
     fileList.innerHTML = files.map(file => `
         <div class="file-item ${file.is_dir ? 'dir' : 'file'}" data-path="${file.path}" data-isdir="${file.is_dir}">
-            <div class="col-icon">
+            <div class="col-name" title="${file.name}">
                 <i class='bx ${file.is_dir ? 'bxs-folder' : 'bx-file'}'></i>
+                <span>${file.name}</span>
             </div>
-            <div class="col-name" title="${file.name}">${file.name}</div>
             <div class="col-size">${file.is_dir ? '--' : formatSize(file.size)}</div>
             <div class="col-actions">
                 ${!file.is_dir ? `<button class="action-btn download" title="Download" onclick="downloadFile('${file.path}', event)"><i class='bx bx-download'></i></button>` : ''}
@@ -302,6 +306,69 @@ function uploadFileWithProgress(file) {
 }
 
 
+
+// Create Dropdown & Folder Creation
+createBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    createDropdown.classList.toggle('hidden');
+});
+
+document.addEventListener('click', () => {
+    createDropdown.classList.add('hidden');
+});
+
+createFolderBtn.addEventListener('click', async () => {
+    const folderName = prompt('Введите имя новой папки:');
+    if (!folderName) return;
+    
+    try {
+        const fullPath = currentPath === '/' ? `/${folderName}` : `${currentPath}/${folderName}`;
+        const res = await fetch(`${API_BASE}/mkdir?path=${encodeURIComponent(fullPath)}`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        
+        if (res.ok) {
+            showToast(`Папка ${folderName} создана`, 'success');
+            loadFiles(currentPath);
+        } else {
+            showToast(`Не удалось создать папку`, 'error');
+        }
+    } catch (err) {
+        showToast('Ошибка соединения', 'error');
+    }
+});
+
+// Global Search
+let searchTimeout;
+searchInput.addEventListener('input', (e) => {
+    clearTimeout(searchTimeout);
+    const query = e.target.value.trim();
+    
+    if (query === '') {
+        loadFiles(currentPath);
+        return;
+    }
+    
+    searchTimeout = setTimeout(async () => {
+        fileList.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Поиск...</p></div>`;
+        try {
+            const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`, {
+                headers: getAuthHeaders()
+            });
+            
+            if (res.ok) {
+                const files = await res.json();
+                renderFiles(files);
+                breadcrumbs.innerHTML = `<span class="crumb active">Результаты поиска для "${query}"</span>`;
+            } else {
+                showToast(`Ошибка поиска`, 'error');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }, 400);
+});
 
 // UI Helpers
 function showToast(message, type = 'success') {
