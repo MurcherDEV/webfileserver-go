@@ -2,13 +2,13 @@
     --bg-color: #ffffff;
     --text-primary: #202124;
     --text-secondary: #5f6368;
-    --primary-color: #1a73e8;
-    --primary-hover: #1b66c9;
+    --primary-color: #0061ff;
+    --primary-hover: #0050d1;
     --danger-color: #d93025;
     --danger-hover: #c5221f;
-    --border-color: #dadce0;
-    --hover-bg: #f1f3f4;
-    --nav-bg: #f8f9fa;
+    --border-color: #e5e5e5;
+    --hover-bg: #f9f9f9;
+    --nav-bg: #f7f9fa;
 }
 
 * {
@@ -61,6 +61,7 @@ button {
     max-width: 450px;
     text-align: center;
     box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    border-radius: 4px;
 }
 
 .login-header {
@@ -104,6 +105,7 @@ button {
     justify-content: center;
     gap: 0.5rem;
     font-size: 0.875rem;
+    font-weight: 500;
     font-weight: 500;
     border-radius: 4px;
     transition: background 0.2s, box-shadow 0.2s;
@@ -221,15 +223,15 @@ button {
 }
 
 .upload-new-btn {
-    background: #fff;
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
+    background: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
     padding: 0 24px 0 16px;
     height: 48px;
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    color: var(--text-primary);
+    color: #fff;
     font-weight: 500;
     font-size: 14px;
     box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
@@ -239,13 +241,13 @@ button {
 }
 
 .upload-new-btn:hover {
-    background: var(--hover-bg);
-    box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15);
+    background: var(--primary-hover);
+    box-shadow: 0 1px 3px 1px rgba(0,0,0,0.1);
 }
 
 .upload-new-btn i {
     font-size: 28px;
-    color: var(--text-secondary);
+    color: #fff;
 }
 
 .create-dropdown-container {
@@ -295,11 +297,12 @@ button {
     align-items: center;
     padding: 0 16px;
     height: 40px;
-    border-radius: 0 20px 20px 0;
-    margin-right: 16px;
+    border-radius: 0;
+    margin-right: 0;
     color: var(--text-primary);
     font-size: 14px;
     font-weight: 500;
+    border-left: 3px solid transparent;
 }
 
 .side-nav a i {
@@ -313,8 +316,9 @@ button {
 }
 
 .side-nav a.active {
-    background: #e8f0fe;
-    color: var(--primary-color);
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-left: 3px solid var(--primary-color);
 }
 
 .side-nav a.active i {
@@ -637,7 +641,7 @@ button {
 .drop-zone {
     position: fixed;
     top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(26, 115, 232, 0.9);
+    background: rgba(0, 97, 255, 0.9);
     z-index: 9999;
     display: flex;
     align-items: center;
