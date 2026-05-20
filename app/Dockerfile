@@ -11,9 +11,8 @@ RUN go mod download || true
 
 COPY . .
 
-# Use Yandex mirror for Alpine packages (bypasses region blocks) and download local assets
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirror.yandex.ru/g' /etc/apk/repositories && \
-    apk add --no-cache curl && \
+# Download local assets (Boxicons) to eliminate external internet dependencies on the client
+RUN apk add --no-cache curl && \
     mkdir -p frontend/assets/css frontend/assets/fonts && \
     curl -sL "https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/css/boxicons.min.css" -o frontend/assets/css/boxicons.min.css && \
     curl -sL "https://cdnjs.cloudflare.com/ajax/libs/boxicons/2.1.4/fonts/boxicons.woff2" -o frontend/assets/fonts/boxicons.woff2 && \
@@ -27,8 +26,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o file-server .
 # Use a minimal alpine image for the final stage
 FROM alpine:latest  
 
-RUN sed -i 's/dl-cdn.alpinelinux.org/mirror.yandex.ru/g' /etc/apk/repositories && \
-    apk --no-cache add ca-certificates tzdata
+RUN apk --no-cache add ca-certificates tzdata
 
 WORKDIR /root/
 
