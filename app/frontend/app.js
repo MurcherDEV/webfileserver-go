@@ -19,6 +19,12 @@ const searchInput = document.getElementById('search-input');
 const createBtn = document.getElementById('create-btn');
 const createDropdown = document.getElementById('create-dropdown');
 const createFolderBtn = document.getElementById('create-folder-btn');
+const previewModal = document.getElementById('preview-modal');
+const previewOverlay = document.getElementById('preview-overlay');
+const previewCloseBtn = document.getElementById('preview-close-btn');
+const previewDownloadBtn = document.getElementById('preview-download-btn');
+const previewTitle = document.getElementById('preview-title');
+const previewContent = document.getElementById('preview-content');
 
 // Authentication
 function getAuthHeaders() {
@@ -184,7 +190,7 @@ function renderFiles(files) {
     });
 
     fileList.innerHTML = files.map(file => `
-        <div class="file-item ${file.is_dir ? 'dir' : 'file'}" data-path="${file.path}" data-isdir="${file.is_dir}">
+        <div class="file-item ${file.is_dir ? 'dir' : 'file'}" data-path="${file.path}" data-isdir="${file.is_dir}" data-size="${file.size}">
             <div class="col-name" title="${file.name}">
                 <i class='bx ${file.is_dir ? 'bxs-folder' : 'bx-file'}'></i>
                 <span>${file.name}</span>
@@ -212,7 +218,7 @@ function renderFiles(files) {
             if (item.dataset.isdir === 'true') {
                 loadFiles(item.dataset.path);
             } else {
-                downloadFile(item.dataset.path, e);
+                previewFile(item.dataset.path, parseInt(item.dataset.size));
             }
         });
     });
@@ -266,6 +272,78 @@ async function downloadFile(path, event) {
         showToast('Download error', 'error');
     }
 }
+
+// Preview functionality
+const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp'];
+const textExtensions = ['txt', 'md', 'csv', 'log', 'json', 'go', 'js', 'html', 'css', 'yaml', 'yml', 'xml', 'sh', 'py'];
+let currentPreviewPath = '';
+
+function getExtension(filename) {
+    const parts = filename.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : '';
+}
+
+async function previewFile(path, size) {
+    const filename = path.split('/').pop();
+    const ext = getExtension(filename);
+    const url = `${API_BASE}/download?path=${encodeURIComponent(path)}`;
+
+    currentPreviewPath = path;
+    previewTitle.textContent = filename;
+    previewContent.innerHTML = '<div class="spinner"></div>';
+    previewModal.classList.remove('hidden');
+
+    if (imageExtensions.includes(ext)) {
+        const img = document.createElement('img');
+        // Fetch with auth headers to support basic auth natively via JS blob (otherwise img src bypasses JS fetch)
+        try {
+            const res = await fetch(url, { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            img.src = window.URL.createObjectURL(blob);
+            previewContent.innerHTML = '';
+            previewContent.appendChild(img);
+        } catch {
+            previewContent.innerHTML = '<p>Не удалось загрузить изображение.</p>';
+        }
+    } else if (textExtensions.includes(ext)) {
+        if (size > 2 * 1024 * 1024) { // 2MB limit
+            previewContent.innerHTML = '<p>Файл слишком большой для предпросмотра (лимит 2 МБ).<br>Пожалуйста, скачайте файл.</p>';
+            return;
+        }
+        try {
+            const res = await fetch(url, { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error('Ошибка сети');
+            const text = await res.text();
+            const pre = document.createElement('pre');
+            pre.textContent = text;
+            previewContent.innerHTML = '';
+            previewContent.appendChild(pre);
+        } catch (err) {
+            previewContent.innerHTML = '<p>Не удалось загрузить текстовый файл.</p>';
+        }
+    } else {
+        previewModal.classList.add('hidden');
+        showToast('Предпросмотр недоступен, начинается скачивание...', 'info');
+        downloadFile(path, null);
+    }
+}
+
+previewCloseBtn.addEventListener('click', () => {
+    previewModal.classList.add('hidden');
+    previewContent.innerHTML = '';
+});
+
+previewOverlay.addEventListener('click', () => {
+    previewModal.classList.add('hidden');
+    previewContent.innerHTML = '';
+});
+
+previewDownloadBtn.addEventListener('click', () => {
+    if (currentPreviewPath) {
+        downloadFile(currentPreviewPath, null);
+    }
+});
 
 async function toggleStar(path, e) {
     e.stopPropagation();
