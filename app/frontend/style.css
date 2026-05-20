@@ -220,15 +220,15 @@ button {
 }
 
 .upload-new-btn {
-    background: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 24px;
     padding: 0 24px 0 16px;
     height: 48px;
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    color: #fff;
+    color: var(--text-primary);
     font-weight: 500;
     font-size: 14px;
     box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
@@ -238,13 +238,13 @@ button {
 }
 
 .upload-new-btn:hover {
-    background: var(--primary-hover);
-    box-shadow: 0 1px 3px 1px rgba(0,0,0,0.1);
+    background: var(--hover-bg);
+    box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15);
 }
 
 .upload-new-btn i {
     font-size: 28px;
-    color: #fff;
+    color: var(--text-secondary);
 }
 
 .create-dropdown-container {
@@ -445,7 +445,7 @@ button {
 .file-item .col-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 16px;
 }
 
 .action-btn {
