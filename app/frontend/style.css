@@ -220,36 +220,35 @@ button {
 }
 
 .upload-new-btn {
-    background: #fff;
-    border: 1px solid var(--border-color);
-    border-radius: 24px;
+    background: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 4px;
     padding: 0 24px 0 16px;
     height: 48px;
     display: inline-flex;
     align-items: center;
     gap: 12px;
-    color: var(--text-primary);
+    color: #fff;
     font-weight: 500;
     font-size: 14px;
     box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
-    margin-bottom: 16px;
-    width: max-content;
     cursor: pointer;
 }
 
 .upload-new-btn:hover {
-    background: var(--hover-bg);
-    box-shadow: 0 1px 3px 1px rgba(60,64,67,0.15);
+    background: var(--primary-hover);
+    box-shadow: 0 1px 3px 1px rgba(0,0,0,0.1);
 }
 
 .upload-new-btn i {
     font-size: 28px;
-    color: var(--text-secondary);
+    color: #fff;
 }
 
 .create-dropdown-container {
     position: relative;
     display: inline-block;
+    margin-bottom: 16px;
 }
 
 .create-dropdown-menu {

@@ -16,6 +16,7 @@ const uploadFilename = document.getElementById('upload-filename');
 const uploadPercentage = document.getElementById('upload-percentage');
 const progressBarFill = document.getElementById('progress-bar-fill');
 const searchInput = document.getElementById('search-input');
+const createBtn = document.getElementById('create-btn');
 const createFolderBtn = document.getElementById('create-folder-btn');
 const previewModal = document.getElementById('preview-modal');
 const previewOverlay = document.getElementById('preview-overlay');
