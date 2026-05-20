@@ -31,52 +31,51 @@
     </div>
 
     <div id="app-container" class="app-layout hidden">
-        <header class="header">
-            <div class="logo">
-                <i class='bx bxs-cloud'></i>
-                <h1>Файловый сервер</h1>
+        <aside class="sidebar">
+            <div class="logo-sidebar">
+                <i class='bx bxs-cloud' style="font-size: 2.5rem; color: var(--primary-color);"></i>
+                <h2>NexusDrive</h2>
             </div>
-            <div class="search-bar">
-                <i class='bx bx-search'></i>
-                <input type="text" id="search-input" placeholder="Поиск на диске">
-            </div>
-            <div class="user-actions">
-                <button id="logout-btn" class="icon-btn" title="Выйти">
-                    <i class='bx bx-log-out'></i>
+
+            <div class="create-dropdown-container">
+                <button class="upload-new-btn" id="create-btn">
+                    <i class='bx bx-plus'></i> Создать
                 </button>
-            </div>
-        </header>
-
-        <div class="main-body">
-            <aside class="sidebar">
-                <div class="create-dropdown-container">
-                    <button class="btn upload-new-btn" id="create-btn">
-                        <i class='bx bx-plus'></i> <span>Создать</span>
-                    </button>
-                    <div class="create-dropdown-menu hidden" id="create-dropdown">
-                        <div class="dropdown-item" id="create-folder-btn">
-                            <i class='bx bx-folder-plus'></i> Новая папка
-                        </div>
-                        <label for="file-upload" class="dropdown-item">
-                            <i class='bx bx-upload'></i> Загрузить файлы
-                        </label>
-                        <input type="file" id="file-upload" class="hidden" multiple>
+                <div class="create-dropdown hidden" id="create-dropdown">
+                    <div class="dropdown-item" id="create-folder-btn">
+                        <i class='bx bx-folder-plus'></i> Новая папка
                     </div>
+                    <label for="file-upload" class="dropdown-item">
+                        <i class='bx bx-upload'></i> Загрузить файлы
+                    </label>
+                    <input type="file" id="file-upload" class="hidden" multiple>
                 </div>
-                
-                <nav class="side-nav">
-                    <a href="#" class="active" id="tab-drive"><i class='bx bxs-hdd'></i> Мой диск</a>
-                    <a href="#" id="tab-starred"><i class='bx bx-star'></i> Помеченные</a>
-                    <a href="#" id="tab-trash"><i class='bx bx-trash'></i> Корзина</a>
-                </nav>
-                
-                <div class="storage-info" id="storage-info">
-                    <div class="storage-bar"><div class="storage-fill" id="storage-fill"></div></div>
-                    <div class="storage-text" id="storage-text">Вычисление...</div>
-                </div>
-            </aside>
+            </div>
+            
+            <nav class="side-nav">
+                <a href="#" class="active" id="tab-drive"><i class='bx bxs-hdd'></i> Мой диск</a>
+                <a href="#" id="tab-starred"><i class='bx bx-star'></i> Помеченные</a>
+                <a href="#" id="tab-trash"><i class='bx bx-trash'></i> Корзина</a>
+            </nav>
+            
+            <div class="storage-info" id="storage-info">
+                <div class="storage-bar"><div class="storage-fill" id="storage-fill"></div></div>
+                <div class="storage-text" id="storage-text">Вычисление...</div>
+            </div>
+        </aside>
 
-            <main class="content-area">
+        <main class="content-area">
+            <header class="header">
+                <div class="search-bar">
+                    <i class='bx bx-search'></i>
+                    <input type="text" id="search-input" placeholder="Поиск на диске">
+                </div>
+                <div class="user-actions">
+                    <button class="icon-btn" id="logout-btn" title="Выход"><i class='bx bx-log-out'></i></button>
+                </div>
+            </header>
+
+            <div class="content-card">
                 <div class="breadcrumbs-container">
                     <div class="breadcrumbs" id="breadcrumbs">
                         <!-- Dynamic breadcrumbs -->
@@ -96,8 +95,8 @@
                         </div>
                     </div>
                 </div>
-            </main>
-        </div>
+            </div>
+        </main>
         
         <div id="toast-container" class="toast-container"></div>
         <div class="footer-copyright app-footer">2026 Симферополь Мясников Артём</div>
