@@ -253,16 +253,22 @@ button {
 }
 
 .create-dropdown-menu {
+    display: none;
     position: absolute;
     top: 56px;
     left: 0;
     background: #fff;
     border: 1px solid var(--border-color);
-    border-radius: 4px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
     width: 200px;
     z-index: 1000;
     padding: 8px 0;
+}
+
+.create-dropdown-container:hover .create-dropdown-menu,
+.create-dropdown-container:focus-within .create-dropdown-menu {
+    display: block;
 }
 
 .dropdown-item {
@@ -384,7 +390,7 @@ button {
 
 .table-header {
     display: grid;
-    grid-template-columns: 1fr 120px 100px;
+    grid-template-columns: 1fr 120px 220px;
     padding: 12px 16px;
     border-bottom: 1px solid var(--border-color);
     font-weight: 500;
@@ -399,7 +405,7 @@ button {
 
 .file-item {
     display: grid;
-    grid-template-columns: 1fr 120px 100px;
+    grid-template-columns: 1fr 120px 220px;
     align-items: center;
     padding: 0 16px;
     height: 52px;

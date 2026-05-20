@@ -16,8 +16,6 @@ const uploadFilename = document.getElementById('upload-filename');
 const uploadPercentage = document.getElementById('upload-percentage');
 const progressBarFill = document.getElementById('progress-bar-fill');
 const searchInput = document.getElementById('search-input');
-const createBtn = document.getElementById('create-btn');
-const createDropdown = document.getElementById('create-dropdown');
 const createFolderBtn = document.getElementById('create-folder-btn');
 const previewModal = document.getElementById('preview-modal');
 const previewOverlay = document.getElementById('preview-overlay');
@@ -479,15 +477,7 @@ function uploadFileWithProgress(file) {
 
 
 
-// Create Dropdown & Folder Creation
-createBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    createDropdown.classList.toggle('hidden');
-});
-
-document.addEventListener('click', () => {
-    createDropdown.classList.add('hidden');
-});
+// Create Folder
 
 createFolderBtn.addEventListener('click', async () => {
     const folderName = prompt('Введите имя новой папки:');
