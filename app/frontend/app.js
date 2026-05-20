@@ -25,6 +25,9 @@ const previewCloseBtn = document.getElementById('preview-close-btn');
 const previewDownloadBtn = document.getElementById('preview-download-btn');
 const previewTitle = document.getElementById('preview-title');
 const previewContent = document.getElementById('preview-content');
+const dropZone = document.getElementById('drop-zone');
+const storageFill = document.getElementById('storage-fill');
+const storageText = document.getElementById('storage-text');
 
 // Authentication
 function getAuthHeaders() {
@@ -148,6 +151,9 @@ async function loadFiles(path, background = false) {
         
         const files = await res.json();
         renderFiles(files);
+        if (currentTab === 'drive') {
+            updateSpaceInfo();
+        }
     } catch (err) {
         if (!background) {
             showToast('Не удалось загрузить файлы', 'error');
@@ -199,6 +205,7 @@ function renderFiles(files) {
             <div class="col-actions">
                 ${currentTab !== 'trash' ? `
                     ${!file.is_dir ? `<button class="action-btn download" title="Скачать" onclick="downloadFile('${file.path}', event)"><i class='bx bx-download'></i></button>` : ''}
+                    <button class="action-btn rename" title="Переименовать" onclick="renameFile('${file.path}', '${file.name}', event)"><i class='bx bx-rename'></i></button>
                     <button class="action-btn star" title="Пометить" onclick="toggleStar('${file.path}', event)"><i class='bx ${file.is_starred ? 'bxs-star' : 'bx-star'}' ${file.is_starred ? 'style="color: #fbbc04;"' : ''}></i></button>
                     <button class="action-btn delete" title="Удалить" onclick="deleteFile('${file.path}', event)"><i class='bx bx-trash'></i></button>
                 ` : `
@@ -553,6 +560,75 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 300);
     }, 3000);
 }
+
+// Disk Space Info
+async function updateSpaceInfo() {
+    try {
+        const res = await fetch(`${API_BASE}/space`, { headers: getAuthHeaders() });
+        if (res.ok) {
+            const data = await res.json();
+            const percent = (data.used / data.total) * 100;
+            storageFill.style.width = `${percent}%`;
+            storageText.textContent = `Использовано ${formatSize(data.used)} из ${formatSize(data.total)}`;
+        }
+    } catch (err) {
+        console.error("Не удалось обновить информацию о месте:", err);
+    }
+}
+
+// Rename
+async function renameFile(path, oldName, e) {
+    if (e) e.stopPropagation();
+    const newName = prompt(`Введите новое имя для ${oldName}:`, oldName);
+    if (!newName || newName === oldName) return;
+
+    try {
+        const res = await fetch(`${API_BASE}/rename?path=${encodeURIComponent(path)}&new_name=${encodeURIComponent(newName)}`, {
+            method: 'POST',
+            headers: getAuthHeaders()
+        });
+        if (res.ok) {
+            showToast('Переименовано успешно');
+            loadFiles(currentPath, true);
+        } else {
+            showToast('Ошибка при переименовании', 'error');
+        }
+    } catch (err) {
+        showToast('Ошибка при переименовании', 'error');
+    }
+}
+
+// Drag and Drop
+document.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    if (!e.dataTransfer.types.includes('Files')) return;
+    dropZone.classList.remove('hidden');
+});
+
+document.addEventListener('dragleave', (e) => {
+    e.preventDefault();
+    if (e.clientX === 0 && e.clientY === 0) {
+        dropZone.classList.add('hidden');
+    }
+});
+
+document.addEventListener('drop', async (e) => {
+    e.preventDefault();
+    dropZone.classList.add('hidden');
+    
+    if (currentTab !== 'drive') {
+        showToast('Пожалуйста, перейдите в "Мой диск" для загрузки', 'error');
+        return;
+    }
+
+    const files = e.dataTransfer.files;
+    if (files.length === 0) return;
+
+    for (let i = 0; i < files.length; i++) {
+        await uploadFileWithProgress(files[i]);
+    }
+    loadFiles(currentPath, true);
+});
 
 // Init
 checkAuth();

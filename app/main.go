@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -131,6 +132,8 @@ func main() {
 	apiMux.HandleFunc("/api/star", handleStar)
 	apiMux.HandleFunc("/api/trash", handleTrash)
 	apiMux.HandleFunc("/api/restore", handleRestore)
+	apiMux.HandleFunc("/api/rename", handleRename)
+	apiMux.HandleFunc("/api/space", handleSpace)
 	
 	mux.Handle("/api/", basicAuth(apiMux, false))
 
@@ -519,4 +522,79 @@ func handleRestore(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"status":"ok"}`))
+}
+
+func handleRename(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	reqPath := r.URL.Query().Get("path")
+	newName := r.URL.Query().Get("new_name")
+	if reqPath == "" || newName == "" {
+		http.Error(w, "path and new_name required", http.StatusBadRequest)
+		return
+	}
+
+	fullPath, ok := safePath(reqPath)
+	if !ok {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	newPath := filepath.Join(filepath.Dir(fullPath), newName)
+	if !strings.HasPrefix(newPath, dataDir) {
+		http.Error(w, "Invalid new name", http.StatusBadRequest)
+		return
+	}
+
+	err := os.Rename(fullPath, newPath)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Update .starred.json if it was starred
+	relOldPath := filepath.ToSlash(filepath.Clean(reqPath))
+	if relOldPath == "" || relOldPath[0] != '/' {
+		relOldPath = "/" + relOldPath
+	}
+	
+	relNewPath := filepath.ToSlash(filepath.Join(filepath.Dir(relOldPath), newName))
+	
+	starred := loadStarred()
+	if starred[relOldPath] {
+		delete(starred, relOldPath)
+		starred[relNewPath] = true
+		saveStarred(starred)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
+}
+
+func handleSpace(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var stat syscall.Statfs_t
+	err := syscall.Statfs(dataDir, &stat)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	total := stat.Blocks * uint64(stat.Bsize)
+	free := stat.Bavail * uint64(stat.Bsize)
+	used := total - free
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]uint64{
+		"total": total,
+		"used":  used,
+		"free":  free,
+	})
 }

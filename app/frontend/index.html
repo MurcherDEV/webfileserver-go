@@ -69,6 +69,11 @@
                     <a href="#" id="tab-starred"><i class='bx bx-star'></i> Помеченные</a>
                     <a href="#" id="tab-trash"><i class='bx bx-trash'></i> Корзина</a>
                 </nav>
+                
+                <div class="storage-info" id="storage-info">
+                    <div class="storage-bar"><div class="storage-fill" id="storage-fill"></div></div>
+                    <div class="storage-text" id="storage-text">Вычисление...</div>
+                </div>
             </aside>
 
             <main class="content-area">
@@ -124,6 +129,13 @@
             <div class="preview-content" id="preview-content">
                 <!-- Content goes here -->
             </div>
+        </div>
+    </div>
+
+    <div id="drop-zone" class="drop-zone hidden">
+        <div class="drop-zone-content">
+            <i class='bx bx-cloud-upload' style="font-size: 5rem; color: #1a73e8; margin-bottom: 20px;"></i>
+            <h2>Отпустите файлы для загрузки</h2>
         </div>
     </div>
 
