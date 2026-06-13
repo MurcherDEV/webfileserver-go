@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="/app/">
     <title>Файловый сервер</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="assets/css/boxicons.min.css">
@@ -31,10 +32,12 @@
     </div>
 
     <div id="app-container" class="app-layout hidden">
-        <aside class="sidebar">
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+        <aside class="sidebar" id="sidebar">
             <div class="logo-sidebar">
                 <i class='bx bxs-cloud' style="font-size: 2.5rem; color: var(--primary-color);"></i>
                 <h2>Файловый сервер</h2>
+                <button class="sidebar-close-btn" id="sidebar-close-btn"><i class='bx bx-x'></i></button>
             </div>
 
             <div class="create-dropdown-container" id="create-btn">
@@ -67,6 +70,7 @@
 
         <main class="content-area">
             <header class="header">
+                <button class="hamburger-btn" id="hamburger-btn" title="Меню"><i class='bx bx-menu'></i></button>
                 <div class="search-bar">
                     <i class='bx bx-search'></i>
                     <input type="text" id="search-input" placeholder="Поиск на диске">

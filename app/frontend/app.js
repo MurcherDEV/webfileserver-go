@@ -1,4 +1,4 @@
-const API_BASE = '/api';
+const API_BASE = '/app/api';
 let currentPath = '/';
 
 // DOM Elements
@@ -619,6 +619,37 @@ document.addEventListener('drop', async (e) => {
         await uploadFileWithProgress(files[i]);
     }
     loadFiles(currentPath, true);
+});
+
+// Mobile Sidebar Toggle
+const sidebar = document.getElementById('sidebar');
+const sidebarOverlay = document.getElementById('sidebar-overlay');
+const hamburgerBtn = document.getElementById('hamburger-btn');
+const sidebarCloseBtn = document.getElementById('sidebar-close-btn');
+
+function openSidebar() {
+    sidebar.classList.add('open');
+    sidebarOverlay.classList.add('visible');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeSidebar() {
+    sidebar.classList.remove('open');
+    sidebarOverlay.classList.remove('visible');
+    document.body.style.overflow = '';
+}
+
+hamburgerBtn.addEventListener('click', openSidebar);
+sidebarCloseBtn.addEventListener('click', closeSidebar);
+sidebarOverlay.addEventListener('click', closeSidebar);
+
+// Close sidebar on navigation (mobile)
+document.querySelectorAll('.side-nav a').forEach(a => {
+    a.addEventListener('click', () => {
+        if (window.innerWidth <= 768) {
+            closeSidebar();
+        }
+    });
 });
 
 // Init
