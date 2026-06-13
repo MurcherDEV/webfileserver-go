@@ -18,6 +18,8 @@ const progressBarFill = document.getElementById('progress-bar-fill');
 const searchInput = document.getElementById('search-input');
 const createBtn = document.getElementById('create-btn');
 const createFolderBtn = document.getElementById('create-folder-btn');
+const navCreateToggle = document.getElementById('nav-create-toggle');
+const navCreateMenu = document.getElementById('nav-create-menu');
 const previewModal = document.getElementById('preview-modal');
 const previewOverlay = document.getElementById('preview-overlay');
 const previewCloseBtn = document.getElementById('preview-close-btn');
@@ -97,16 +99,13 @@ function switchTab(tab) {
     document.getElementById(`tab-${tab}`).classList.add('active');
     
     if (tab === 'trash') {
-        createBtn.style.opacity = '0.5';
-        createBtn.style.pointerEvents = 'none';
+        createBtn.style.display = 'none';
         breadcrumbs.innerHTML = `<span class="crumb active">Корзина</span>`;
     } else if (tab === 'starred') {
-        createBtn.style.opacity = '0.5';
-        createBtn.style.pointerEvents = 'none';
+        createBtn.style.display = 'none';
         breadcrumbs.innerHTML = `<span class="crumb active">Помеченные</span>`;
     } else {
-        createBtn.style.opacity = '1';
-        createBtn.style.pointerEvents = 'auto';
+        createBtn.style.display = '';
         currentPath = '/';
         updateBreadcrumbs();
     }
@@ -504,6 +503,12 @@ createFolderBtn.addEventListener('click', async () => {
     } catch (err) {
         showToast('Ошибка соединения', 'error');
     }
+});
+
+// Create menu toggle (click-based accordion)
+navCreateToggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    createBtn.classList.toggle('open');
 });
 
 // Global Search

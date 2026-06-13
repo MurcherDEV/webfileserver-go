@@ -219,73 +219,77 @@ button {
     background: #f3f4f6;
 }
 
-.upload-new-btn {
-    background: var(--primary-color);
-    border: 1px solid var(--primary-color);
-    border-radius: 4px;
-    padding: 0 24px 0 16px;
-    height: 48px;
-    display: inline-flex;
-    align-items: center;
-    gap: 12px;
-    color: #fff;
-    font-weight: 500;
-    font-size: 14px;
-    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3);
-    cursor: pointer;
+/* Create button — integrated into nav */
+.nav-create-container {
+    display: flex;
+    flex-direction: column;
 }
 
-.upload-new-btn:hover {
-    background: var(--primary-hover);
-    box-shadow: 0 1px 3px 1px rgba(0,0,0,0.1);
-}
-
-.upload-new-btn i {
-    font-size: 28px;
-    color: #fff;
-}
-
-.create-dropdown-container {
-    position: relative;
-    display: inline-block;
-    margin-bottom: 16px;
-}
-
-.create-dropdown-menu {
-    display: none;
-    position: absolute;
-    top: 56px;
-    left: 0;
-    background: #fff;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-    width: 200px;
-    z-index: 1000;
-    padding: 8px 0;
-}
-
-.create-dropdown-container:hover .create-dropdown-menu,
-.create-dropdown-container:focus-within .create-dropdown-menu {
-    display: block;
-}
-
-.dropdown-item {
-    padding: 10px 16px;
+.nav-create-toggle {
     display: flex;
     align-items: center;
-    gap: 12px;
-    cursor: pointer;
+    padding: 0 16px;
+    height: 40px;
+    color: var(--primary-color);
     font-size: 14px;
-    color: var(--text-primary);
+    font-weight: 600;
+    border-left: 3px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s;
+    text-decoration: none;
 }
 
-.dropdown-item i {
+.nav-create-toggle i:first-child {
     font-size: 20px;
+    margin-right: 16px;
+    color: var(--primary-color);
+}
+
+.nav-create-arrow {
+    margin-left: auto;
+    font-size: 18px;
+    transition: transform 0.25s ease;
     color: var(--text-secondary);
 }
 
-.dropdown-item:hover {
+.nav-create-container.open .nav-create-arrow {
+    transform: rotate(180deg);
+}
+
+.nav-create-toggle:hover {
+    background: var(--hover-bg);
+}
+
+.nav-create-menu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+}
+
+.nav-create-container.open .nav-create-menu {
+    max-height: 120px;
+}
+
+.nav-create-item {
+    display: flex;
+    align-items: center;
+    padding: 0 16px 0 36px;
+    height: 38px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+}
+
+.nav-create-item i {
+    font-size: 18px;
+    margin-right: 12px;
+    color: var(--text-secondary);
+}
+
+.nav-create-item:hover {
     background: var(--hover-bg);
 }
 
@@ -1023,13 +1027,6 @@ button {
     /* --- Upload progress --- */
     #upload-filename {
         max-width: 140px;
-        font-size: 13px;
-    }
-
-    /* --- Create button --- */
-    .upload-new-btn {
-        padding: 0 18px 0 12px;
-        height: 42px;
         font-size: 13px;
     }
 }

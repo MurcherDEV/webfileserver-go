@@ -40,22 +40,22 @@
                 <button class="sidebar-close-btn" id="sidebar-close-btn"><i class='bx bx-x'></i></button>
             </div>
 
-            <div class="create-dropdown-container" id="create-btn">
-                <div class="upload-new-btn">
-                    <i class='bx bx-plus'></i> Создать
-                </div>
-                <div class="create-dropdown-menu">
-                    <div class="dropdown-item" id="create-folder-btn">
-                        <i class='bx bx-folder-plus'></i> Новая папка
-                    </div>
-                    <label for="file-upload" class="dropdown-item">
-                        <i class='bx bx-upload'></i> Загрузить файлы
-                    </label>
-                    <input type="file" id="file-upload" class="hidden" multiple>
-                </div>
-            </div>
-            
             <nav class="side-nav">
+                <div class="nav-create-container" id="create-btn">
+                    <a href="#" class="nav-create-toggle" id="nav-create-toggle">
+                        <i class='bx bx-plus'></i> Создать
+                        <i class='bx bx-chevron-down nav-create-arrow' id="nav-create-arrow"></i>
+                    </a>
+                    <div class="nav-create-menu" id="nav-create-menu">
+                        <div class="nav-create-item" id="create-folder-btn">
+                            <i class='bx bx-folder-plus'></i> Новая папка
+                        </div>
+                        <label for="file-upload" class="nav-create-item">
+                            <i class='bx bx-upload'></i> Загрузить файлы
+                        </label>
+                        <input type="file" id="file-upload" class="hidden" multiple>
+                    </div>
+                </div>
                 <a href="#" class="active" id="tab-drive"><i class='bx bxs-hdd'></i> Мой диск</a>
                 <a href="#" id="tab-starred"><i class='bx bx-star'></i> Помеченные</a>
                 <a href="#" id="tab-trash"><i class='bx bx-trash'></i> Корзина</a>
