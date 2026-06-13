@@ -1,7 +1,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,6 +34,17 @@ var (
 	authUser string
 	authHash []byte
 )
+
+// Download token system for browser-native large file downloads
+type tokenInfo struct {
+	filePath string
+	expires  time.Time
+}
+
+var downloadTokens = struct {
+	sync.Mutex
+	m map[string]tokenInfo
+}{m: make(map[string]tokenInfo)}
 
 type FileInfo struct {
 	Name      string `json:"name"`
@@ -134,8 +147,27 @@ func main() {
 	apiMux.HandleFunc("/api/restore", handleRestore)
 	apiMux.HandleFunc("/api/rename", handleRename)
 	apiMux.HandleFunc("/api/space", handleSpace)
-	
+	apiMux.HandleFunc("/api/download-token", handleDownloadToken)
+
+	// Token-based download: NO auth (the token IS the auth)
+	mux.HandleFunc("/api/dl", handleTokenDownload)
+
 	mux.Handle("/api/", basicAuth(apiMux, false))
+
+	// Cleanup expired download tokens every 5 minutes
+	go func() {
+		for {
+			time.Sleep(5 * time.Minute)
+			now := time.Now()
+			downloadTokens.Lock()
+			for k, v := range downloadTokens.m {
+				if now.After(v.expires) {
+					delete(downloadTokens.m, k)
+				}
+			}
+			downloadTokens.Unlock()
+		}
+	}()
 
 	log.Println("Starting server on :8080")
 	if err := http.ListenAndServe(":8080", mux); err != nil {
@@ -295,6 +327,77 @@ func handleDownload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.ServeFile(w, r, fullPath)
+}
+
+func generateToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
+
+func handleDownloadToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	reqPath := r.URL.Query().Get("path")
+	if reqPath == "" {
+		http.Error(w, "Path required", http.StatusBadRequest)
+		return
+	}
+
+	fullPath, ok := safePath(reqPath)
+	if !ok {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+
+	token := generateToken()
+
+	downloadTokens.Lock()
+	downloadTokens.m[token] = tokenInfo{
+		filePath: fullPath,
+		expires:  time.Now().Add(60 * time.Second),
+	}
+	downloadTokens.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"token": token})
+}
+
+func handleTokenDownload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		http.Error(w, "Token required", http.StatusBadRequest)
+		return
+	}
+
+	downloadTokens.Lock()
+	info, exists := downloadTokens.m[token]
+	if exists {
+		delete(downloadTokens.m, token) // one-time use
+	}
+	downloadTokens.Unlock()
+
+	if !exists || time.Now().After(info.expires) {
+		http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	fileName := filepath.Base(info.filePath)
+	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+	http.ServeFile(w, r, info.filePath)
 }
 
 func handleDelete(w http.ResponseWriter, r *http.Request) {

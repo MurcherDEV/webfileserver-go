@@ -258,24 +258,28 @@ function updateBreadcrumbs() {
 async function downloadFile(path, event) {
     if (event) event.stopPropagation();
     
-    const headers = getAuthHeaders();
     try {
-        const response = await fetch(`${API_BASE}/download?path=${encodeURIComponent(path)}`, { headers });
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = path.split('/').pop();
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-        } else {
-            showToast('Failed to download file', 'error');
+        // Get a one-time download token (authenticated)
+        const tokenRes = await fetch(`${API_BASE}/download-token?path=${encodeURIComponent(path)}`, {
+            headers: getAuthHeaders()
+        });
+        
+        if (!tokenRes.ok) {
+            showToast('Не удалось подготовить загрузку', 'error');
+            return;
         }
+        
+        const { token } = await tokenRes.json();
+        
+        // Browser-native download — no fetch buffering, instant start
+        const a = document.createElement('a');
+        a.href = `${API_BASE}/dl?token=${encodeURIComponent(token)}`;
+        a.download = path.split('/').pop();
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
     } catch (err) {
-        showToast('Download error', 'error');
+        showToast('Ошибка загрузки', 'error');
     }
 }
 
