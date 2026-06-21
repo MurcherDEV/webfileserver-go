@@ -147,6 +147,7 @@ func main() {
 	apiMux.HandleFunc("/api/restore", handleRestore)
 	apiMux.HandleFunc("/api/rename", handleRename)
 	apiMux.HandleFunc("/api/space", handleSpace)
+	apiMux.HandleFunc("/api/save", handleSave)
 	apiMux.HandleFunc("/api/download-token", handleDownloadToken)
 
 	// Token-based download: NO auth (the token IS the auth)
@@ -670,6 +671,53 @@ func handleRename(w http.ResponseWriter, r *http.Request) {
 		delete(starred, relOldPath)
 		starred[relNewPath] = true
 		saveStarred(starred)
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"status":"ok"}`))
+}
+
+func handleSave(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	reqPath := r.URL.Query().Get("path")
+	if reqPath == "" {
+		http.Error(w, "Path required", http.StatusBadRequest)
+		return
+	}
+
+	fullPath, ok := safePath(reqPath)
+	if !ok {
+		http.Error(w, "Invalid path", http.StatusBadRequest)
+		return
+	}
+
+	// Only allow saving existing files
+	info, err := os.Stat(fullPath)
+	if err != nil {
+		http.Error(w, "File not found", http.StatusNotFound)
+		return
+	}
+	if info.IsDir() {
+		http.Error(w, "Cannot save to a directory", http.StatusBadRequest)
+		return
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read body", http.StatusInternalServerError)
+		return
+	}
+	defer r.Body.Close()
+
+	err = os.WriteFile(fullPath, body, 0644)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")

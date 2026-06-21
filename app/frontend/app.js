@@ -26,6 +26,9 @@ const previewCloseBtn = document.getElementById('preview-close-btn');
 const previewDownloadBtn = document.getElementById('preview-download-btn');
 const previewTitle = document.getElementById('preview-title');
 const previewContent = document.getElementById('preview-content');
+const previewEditBtn = document.getElementById('preview-edit-btn');
+const previewSaveBtn = document.getElementById('preview-save-btn');
+const previewCancelBtn = document.getElementById('preview-cancel-btn');
 const dropZone = document.getElementById('drop-zone');
 const storageFill = document.getElementById('storage-fill');
 const storageText = document.getElementById('storage-text');
@@ -285,11 +288,31 @@ async function downloadFile(path, event) {
 // Preview functionality
 const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'bmp'];
 const textExtensions = ['txt', 'md', 'csv', 'log', 'json', 'go', 'js', 'html', 'css', 'yaml', 'yml', 'xml', 'sh', 'py'];
+const docxExtensions = ['docx'];
+const pptxExtensions = ['pptx'];
+const pdfExtensions = ['pdf'];
+const docLegacyExtensions = ['doc'];
+const editableExtensions = ['txt', 'md', 'csv', 'log', 'json', 'go', 'js', 'html', 'css', 'yaml', 'yml', 'xml', 'sh', 'py'];
 let currentPreviewPath = '';
+let isEditMode = false;
+let originalTextContent = '';
 
 function getExtension(filename) {
     const parts = filename.split('.');
     return parts.length > 1 ? parts.pop().toLowerCase() : '';
+}
+
+function setEditorMode(editing) {
+    isEditMode = editing;
+    previewEditBtn.classList.toggle('hidden', editing);
+    previewSaveBtn.classList.toggle('hidden', !editing);
+    previewCancelBtn.classList.toggle('hidden', !editing);
+}
+
+function hideEditorButtons() {
+    previewEditBtn.classList.add('hidden');
+    previewSaveBtn.classList.add('hidden');
+    previewCancelBtn.classList.add('hidden');
 }
 
 async function previewFile(path, size) {
@@ -301,14 +324,16 @@ async function previewFile(path, size) {
     previewTitle.textContent = filename;
     previewContent.innerHTML = '<div class="spinner"></div>';
     previewModal.classList.remove('hidden');
+    hideEditorButtons();
+    isEditMode = false;
 
     if (imageExtensions.includes(ext)) {
-        const img = document.createElement('img');
-        // Fetch with auth headers to support basic auth natively via JS blob (otherwise img src bypasses JS fetch)
+        // === Image preview ===
         try {
             const res = await fetch(url, { headers: getAuthHeaders() });
             if (!res.ok) throw new Error();
             const blob = await res.blob();
+            const img = document.createElement('img');
             img.src = window.URL.createObjectURL(blob);
             previewContent.innerHTML = '';
             previewContent.appendChild(img);
@@ -316,7 +341,8 @@ async function previewFile(path, size) {
             previewContent.innerHTML = '<p>Не удалось загрузить изображение.</p>';
         }
     } else if (textExtensions.includes(ext)) {
-        if (size > 2 * 1024 * 1024) { // 2MB limit
+        // === Text preview + editor ===
+        if (size > 2 * 1024 * 1024) {
             previewContent.innerHTML = '<p>Файл слишком большой для предпросмотра (лимит 2 МБ).<br>Пожалуйста, скачайте файл.</p>';
             return;
         }
@@ -324,12 +350,80 @@ async function previewFile(path, size) {
             const res = await fetch(url, { headers: getAuthHeaders() });
             if (!res.ok) throw new Error('Ошибка сети');
             const text = await res.text();
+            originalTextContent = text;
             const pre = document.createElement('pre');
             pre.textContent = text;
             previewContent.innerHTML = '';
             previewContent.appendChild(pre);
+            // Show edit button for editable files
+            if (editableExtensions.includes(ext)) {
+                previewEditBtn.classList.remove('hidden');
+            }
         } catch (err) {
             previewContent.innerHTML = '<p>Не удалось загрузить текстовый файл.</p>';
+        }
+    } else if (docxExtensions.includes(ext)) {
+        // === DOCX preview via mammoth.js ===
+        if (size > 50 * 1024 * 1024) {
+            previewContent.innerHTML = '<p>Файл слишком большой для предпросмотра (лимит 50 МБ).<br>Пожалуйста, скачайте файл.</p>';
+            return;
+        }
+        try {
+            const res = await fetch(url, { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error();
+            const arrayBuffer = await res.arrayBuffer();
+            const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+            const wrapper = document.createElement('div');
+            wrapper.className = 'docx-preview';
+            wrapper.innerHTML = result.value;
+            previewContent.innerHTML = '';
+            previewContent.appendChild(wrapper);
+        } catch (err) {
+            previewContent.innerHTML = '<p>Не удалось загрузить документ DOCX.</p>';
+        }
+    } else if (docLegacyExtensions.includes(ext)) {
+        // === DOC — unsupported format ===
+        previewContent.innerHTML = `
+            <div class="unsupported-preview">
+                <i class='bx bxs-file-doc' style="font-size: 4rem; color: #185abd; margin-bottom: 16px;"></i>
+                <h3>Предпросмотр .doc недоступен</h3>
+                <p>Формат .doc (Microsoft Word 97-2003) не поддерживает предпросмотр в браузере.</p>
+                <p>Пожалуйста, скачайте файл или сконвертируйте в .docx</p>
+                <button class="btn primary-btn" style="margin-top: 16px; width: auto; padding: 10px 32px;" onclick="downloadFile('${path}', null)">
+                    <i class='bx bx-download'></i> Скачать файл
+                </button>
+            </div>
+        `;
+    } else if (pptxExtensions.includes(ext)) {
+        // === PPTX preview via JSZip ===
+        if (size > 100 * 1024 * 1024) {
+            previewContent.innerHTML = '<p>Файл слишком большой для предпросмотра (лимит 100 МБ).<br>Пожалуйста, скачайте файл.</p>';
+            return;
+        }
+        try {
+            const res = await fetch(url, { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error();
+            const arrayBuffer = await res.arrayBuffer();
+            await renderPptxPreview(arrayBuffer);
+        } catch (err) {
+            previewContent.innerHTML = '<p>Не удалось загрузить презентацию PPTX.</p>';
+        }
+    } else if (pdfExtensions.includes(ext)) {
+        // === PDF preview via native browser renderer ===
+        try {
+            const res = await fetch(url, { headers: getAuthHeaders() });
+            if (!res.ok) throw new Error();
+            const blob = await res.blob();
+            const blobUrl = window.URL.createObjectURL(blob);
+            const iframe = document.createElement('iframe');
+            iframe.className = 'pdf-preview';
+            iframe.src = blobUrl;
+            previewContent.innerHTML = '';
+            previewContent.appendChild(iframe);
+            // Cleanup blob URL when preview is closed
+            iframe.dataset.blobUrl = blobUrl;
+        } catch (err) {
+            previewContent.innerHTML = '<p>Не удалось загрузить PDF.</p>';
         }
     } else {
         previewModal.classList.add('hidden');
@@ -338,14 +432,230 @@ async function previewFile(path, size) {
     }
 }
 
-previewCloseBtn.addEventListener('click', () => {
+// === PPTX Renderer ===
+async function renderPptxPreview(arrayBuffer) {
+    const zip = await JSZip.loadAsync(arrayBuffer);
+    
+    // Find all slide files
+    const slideFiles = Object.keys(zip.files)
+        .filter(name => /^ppt\/slides\/slide\d+\.xml$/i.test(name))
+        .sort((a, b) => {
+            const numA = parseInt(a.match(/slide(\d+)/)[1]);
+            const numB = parseInt(b.match(/slide(\d+)/)[1]);
+            return numA - numB;
+        });
+
+    if (slideFiles.length === 0) {
+        previewContent.innerHTML = '<p>Слайды не найдены в файле.</p>';
+        return;
+    }
+
+    // Parse each slide
+    const slides = [];
+    for (const slideFile of slideFiles) {
+        const xmlStr = await zip.file(slideFile).async('string');
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlStr, 'application/xml');
+        
+        // Extract text blocks
+        const textElements = xmlDoc.getElementsByTagName('a:t');
+        const paragraphs = xmlDoc.getElementsByTagName('a:p');
+        const slideTexts = [];
+        
+        for (let p = 0; p < paragraphs.length; p++) {
+            const para = paragraphs[p];
+            const runs = para.getElementsByTagName('a:t');
+            let paraText = '';
+            for (let r = 0; r < runs.length; r++) {
+                paraText += runs[r].textContent;
+            }
+            if (paraText.trim()) {
+                // Check if this paragraph has large font (title)
+                const fontSizeEl = para.getElementsByTagName('a:sz');
+                let fontSize = 1800; // default
+                if (fontSizeEl.length === 0) {
+                    const rPr = para.getElementsByTagName('a:rPr');
+                    for (let i = 0; i < rPr.length; i++) {
+                        if (rPr[i].getAttribute('sz')) {
+                            fontSize = parseInt(rPr[i].getAttribute('sz'));
+                            break;
+                        }
+                    }
+                }
+                const defRPr = para.getElementsByTagName('a:defRPr');
+                for (let i = 0; i < defRPr.length; i++) {
+                    if (defRPr[i].getAttribute('sz')) {
+                        fontSize = parseInt(defRPr[i].getAttribute('sz'));
+                        break;
+                    }
+                }
+                // Also check endParaRPr
+                const endRPr = para.getElementsByTagName('a:endParaRPr');
+                // Check run properties
+                const runProps = para.getElementsByTagName('a:rPr');
+                for (let i = 0; i < runProps.length; i++) {
+                    if (runProps[i].getAttribute('sz')) {
+                        fontSize = parseInt(runProps[i].getAttribute('sz'));
+                        break;
+                    }
+                }
+                
+                slideTexts.push({
+                    text: paraText.trim(),
+                    isTitle: fontSize >= 2400,
+                    fontSize: fontSize
+                });
+            }
+        }
+        
+        slides.push(slideTexts);
+    }
+
+    // Render slides viewer
+    let currentSlide = 0;
+    
+    function renderSlide(index) {
+        const slide = slides[index];
+        const viewer = document.createElement('div');
+        viewer.className = 'pptx-viewer';
+        
+        const slideEl = document.createElement('div');
+        slideEl.className = 'pptx-slide';
+        
+        if (slide.length === 0) {
+            slideEl.innerHTML = '<p class="pptx-empty">Пустой слайд</p>';
+        } else {
+            slide.forEach(item => {
+                const el = document.createElement(item.isTitle ? 'h2' : 'p');
+                el.textContent = item.text;
+                if (item.isTitle) el.className = 'pptx-title';
+                else el.className = 'pptx-text';
+                slideEl.appendChild(el);
+            });
+        }
+        
+        const nav = document.createElement('div');
+        nav.className = 'pptx-nav';
+        nav.innerHTML = `
+            <button class="pptx-nav-btn" id="pptx-prev" ${index === 0 ? 'disabled' : ''}>
+                <i class='bx bx-chevron-left'></i>
+            </button>
+            <span class="pptx-page">Слайд ${index + 1} из ${slides.length}</span>
+            <button class="pptx-nav-btn" id="pptx-next" ${index === slides.length - 1 ? 'disabled' : ''}>
+                <i class='bx bx-chevron-right'></i>
+            </button>
+        `;
+        
+        viewer.appendChild(slideEl);
+        viewer.appendChild(nav);
+        
+        previewContent.innerHTML = '';
+        previewContent.appendChild(viewer);
+        
+        // Nav event listeners
+        document.getElementById('pptx-prev').addEventListener('click', () => {
+            if (currentSlide > 0) {
+                currentSlide--;
+                renderSlide(currentSlide);
+            }
+        });
+        document.getElementById('pptx-next').addEventListener('click', () => {
+            if (currentSlide < slides.length - 1) {
+                currentSlide++;
+                renderSlide(currentSlide);
+            }
+        });
+    }
+    
+    renderSlide(0);
+}
+
+// === TXT Editor ===
+previewEditBtn.addEventListener('click', () => {
+    const pre = previewContent.querySelector('pre');
+    if (!pre) return;
+    
+    originalTextContent = pre.textContent;
+    const textarea = document.createElement('textarea');
+    textarea.className = 'text-editor';
+    textarea.value = originalTextContent;
+    textarea.spellcheck = false;
+    previewContent.innerHTML = '';
+    previewContent.appendChild(textarea);
+    textarea.focus();
+    setEditorMode(true);
+});
+
+previewSaveBtn.addEventListener('click', async () => {
+    const textarea = previewContent.querySelector('textarea');
+    if (!textarea || !currentPreviewPath) return;
+    
+    const content = textarea.value;
+    previewSaveBtn.disabled = true;
+    previewSaveBtn.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Сохранение...';
+    
+    try {
+        const res = await fetch(`${API_BASE}/save?path=${encodeURIComponent(currentPreviewPath)}`, {
+            method: 'POST',
+            headers: {
+                ...getAuthHeaders(),
+                'Content-Type': 'text/plain'
+            },
+            body: content
+        });
+        
+        if (res.ok) {
+            showToast('Файл сохранён', 'success');
+            originalTextContent = content;
+            // Switch back to preview mode
+            const pre = document.createElement('pre');
+            pre.textContent = content;
+            previewContent.innerHTML = '';
+            previewContent.appendChild(pre);
+            setEditorMode(false);
+            previewEditBtn.classList.remove('hidden');
+        } else {
+            showToast('Ошибка при сохранении файла', 'error');
+        }
+    } catch (err) {
+        showToast('Ошибка соединения', 'error');
+    } finally {
+        previewSaveBtn.disabled = false;
+        previewSaveBtn.innerHTML = '<i class="bx bx-save"></i> Сохранить';
+    }
+});
+
+previewCancelBtn.addEventListener('click', () => {
+    const pre = document.createElement('pre');
+    pre.textContent = originalTextContent;
+    previewContent.innerHTML = '';
+    previewContent.appendChild(pre);
+    setEditorMode(false);
+    previewEditBtn.classList.remove('hidden');
+});
+
+function closePreview() {
+    // Cleanup blob URLs (e.g. PDF preview)
+    const iframe = previewContent.querySelector('iframe[data-blob-url]');
+    if (iframe) window.URL.revokeObjectURL(iframe.dataset.blobUrl);
     previewModal.classList.add('hidden');
     previewContent.innerHTML = '';
+    hideEditorButtons();
+    isEditMode = false;
+}
+
+previewCloseBtn.addEventListener('click', () => {
+    if (isEditMode) {
+        if (!confirm('Вы уверены? Несохранённые изменения будут потеряны.')) return;
+    }
+    closePreview();
 });
 
 previewOverlay.addEventListener('click', () => {
-    previewModal.classList.add('hidden');
-    previewContent.innerHTML = '';
+    if (isEditMode) {
+        if (!confirm('Вы уверены? Несохранённые изменения будут потеряны.')) return;
+    }
+    closePreview();
 });
 
 previewDownloadBtn.addEventListener('click', () => {

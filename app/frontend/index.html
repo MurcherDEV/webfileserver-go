@@ -7,6 +7,8 @@
     <title>Файловый сервер</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="assets/css/boxicons.min.css">
+    <script src="assets/js/mammoth.browser.min.js"></script>
+    <script src="assets/js/jszip.min.js"></script>
 </head>
 <body>
 
@@ -125,6 +127,9 @@
             <div class="preview-header">
                 <div class="preview-title" id="preview-title">Файл.txt</div>
                 <div class="preview-actions">
+                    <button class="preview-action-btn" id="preview-edit-btn" title="Редактировать"><i class='bx bx-edit-alt'></i> Редактировать</button>
+                    <button class="preview-action-btn save" id="preview-save-btn" title="Сохранить"><i class='bx bx-save'></i> Сохранить</button>
+                    <button class="preview-action-btn cancel hidden" id="preview-cancel-btn" title="Отмена"><i class='bx bx-x'></i> Отмена</button>
                     <button class="icon-btn" id="preview-download-btn" title="Скачать"><i class='bx bx-download'></i></button>
                     <button class="icon-btn" id="preview-close-btn" title="Закрыть"><i class='bx bx-x'></i></button>
                 </div>
